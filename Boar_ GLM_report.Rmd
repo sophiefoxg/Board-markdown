@@ -1,0 +1,114 @@
+---
+title: "Boar Analysis Markdown"
+author: "Sophie Fox-Gmuer"
+date: "2024-11-04"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##  Binomial data; TB in wild boar
+
+# The data: Variables
+1. Tb: a binomial variable, categorising individuals as infected (1) or uninfected (2)
+ 
+2. Sex: a categorical variable, defining individuals as male (1) or female (2) 
+
+3. Age: a categorical variable defining individuals into 1 of 4 age categories - juvenile, subadult, young adult, old adult (accurate age cannot be clearly defined in years)
+
+4. Length: nose-rump length, measured in cm
+
+# The aim: identify the risk factors for TB in this population
+ e.g. is infection equally distributed among the population? or can we make predictions about likelihood
+```{r , echo=FALSE}
+
+dframe1<-read.csv(choose.files(),na="NA",stringsAsFactors =T) # 
+
+dframe1$age <- as.factor(dframe1$age)   
+dframe1$sex <- as.factor(dframe1$sex)
+plot(dframe1$age, xlab= "age") 
+plot(dframe1$sex, xlab ="sex")
+
+```
+
+
+## GLM model 1
+
+You can also embed plots, for example:
+
+```{r , echo=FALSE}
+hist(dframe1$length) 
+model1 <- glm(Tb ~ length + sex + length:sex,family = binomial (link = logit), data = dframe1)
+plot(model1)
+
+```
+
+
+## After testing for model efficiency this is the final GLM model
+```{r , echo=FALSE}
+library(effects) 
+
+par(mfrow=c(1,1)) 
+
+plot(allEffects(model1))
+modelfinal <- glm(Tb ~ length,
+              family = binomial (link = logit),
+              data = dframe1)
+plot(modelfinal)
+
+
+```
+
+## Visualise the effects
+```{r , echo=FALSE}
+
+library(effects)
+par(mfrow=c(1,1)) 
+plot(allEffects(model1)) 
+
+
+```
+
+
+## the final model
+```{r , echo=FALSE}
+
+modelfinal <- glm(Tb ~ length,
+              family = binomial (link = logit),
+              data = dframe1)
+
+par (mfrow = c (1,1)) 
+plot (dframe1$Tb ~ dframe1$length, 	
+      ylab = "Probability of having Tb",
+      xlab = "Body length (cm)" ,
+      col = "blue")
+pdat <- expand.grid(length = seq(40,180, 1) ) 
+pdat 
+
+pred <- predict (modelfinal, newdata = pdat, type= "response", se.fit = TRUE) 
+
+predframe <- data.frame (pdat, preds = pred$fit, se = pred$se.fit)
+predframe
+
+lines (predframe$preds ~ predframe$length, col="red", lwd = 2)
+
+predframe$upperse <- (predframe$preds + predframe$se )
+lines (predframe$upperse ~ predframe$length, lty = 2, col = "red", lwd = 1.5) 
+
+predframe$lowerse <- (predframe$preds - predframe$se)
+lines (predframe$lowerse ~ predframe$length, lty = 2, col = "red", lwd = 1.5) 
+
+
+
+predframe$upperCI <- (predframe$preds + (1.96*predframe$se ))
+lines (predframe$upperCI ~ predframe$length, lty = 2, col = "blue", lwd = 2) 
+
+predframe$lowerCI <- (predframe$preds - (1.96*predframe$se))
+lines (predframe$lowerCI ~ predframe$length, lty = 2, col = "blue", lwd = 2) 
+
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
